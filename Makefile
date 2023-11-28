@@ -1,9 +1,9 @@
 CC = g++
 LIBS = -lopencv_core -lopencv_highgui -lopencv_imgproc -lopencv_objdetect -lopencv_videoio -lopencv_imgcodecs -lopencv_video -I /usr/include/opencv4
 
-OUT_TARGET = index.o
+OUT_TARGET = dev.o
 
-IN_TARGET = index.cpp
+IN_TARGET = dev.cpp
 
 all: $(OUT_TARGET)
 
