@@ -15,15 +15,20 @@ int main() {
         return -1;
     }
 
-    // Path to the folder containing labeled JPEG images
-    string inputFolderPath = "TrainingData";
-    string outputFolderPath = "OutputData"; // Base folder to save the output images
+    // Path to the folder containing labeled JPEG images for training
+    string trainingFolderPath = "TrainingData";
+    // Path to the folder containing labeled JPEG images for testing
+    string testingFolderPath = "TestingData";
+    // Base folder to save the output images
+    string outputFolderPath = "OutputData";
 
     // Create the output folder if it doesn't exist
     create_directory(outputFolderPath);
 
-    // Iterate over subfolders (labeled with person names) in the input folder
-    for (const auto& personFolder : directory_iterator(inputFolderPath)) {
+    // ------------ Training Phase ------------
+
+    // Iterate over subfolders (labeled with person names) in the training folder
+    for (const auto& personFolder : directory_iterator(trainingFolderPath)) {
         if (!personFolder.is_directory()) {
             continue; // Skip non-directory entries
         }
@@ -76,9 +81,114 @@ int main() {
             }
 
             // Save the modified image to the person's output folder
-            string outputFilePath = personOutputFolder + "/" + personName + "_" + entry.path().filename().string();
+            std::string outputFilePath = personOutputFolder + "/" + personName + "_" + entry.path().filename().string();
             cv::imwrite(outputFilePath, image);
         }
+    }
+
+    // ------------ Testing Phase ------------
+
+    // Iterate over files in the testing folder
+    for (const auto& entry : directory_iterator(testingFolderPath)) {
+        // Read the test image
+        cv::Mat testImage = cv::imread(entry.path(), cv::IMREAD_COLOR);
+
+        // Check if the image is loaded successfully
+        if (testImage.empty()) {
+            cerr << "Error loading test image: " << entry.path() << endl;
+            continue;
+        }
+
+        // Convert the test image to grayscale for face detection
+        cv::Mat testGray;
+        cv::cvtColor(testImage, testGray, cv::COLOR_BGR2GRAY);
+
+        // Detect faces in the test image
+        vector<cv::Rect> testFaces;
+        faceCascade.detectMultiScale(testGray, testFaces, 1.1, 4);
+
+        // Process each detected face in the test image
+        for (const auto& testFace : testFaces) {
+            // Label the detected face with the person's name (if known)
+            bool faceLabeled = false;
+
+            // Iterate over subfolders (labeled with person names) in the training folder
+            // for (const auto& personFolder : directory_iterator(trainingFolderPath)) {
+                for (const auto& personFolder : directory_iterator(outputFolderPath)) {
+                if (!personFolder.is_directory()) {
+                    continue; // Skip non-directory entries
+                }
+
+                // Get the person's name from the folder name
+                string personName = personFolder.path().filename().string();
+                // Load the labeled image of the person for comparison
+                string labeledImagePath = personFolder.path().string() + "/" + personName + "_1.jpeg"; // Assuming only one labeled image per person
+                cv::Mat labeledImage = cv::imread(labeledImagePath, cv::IMREAD_GRAYSCALE);
+
+                // Check if the labeled image is loaded successfully
+                if (labeledImage.empty()) {
+                    cerr << "Error loading labeled image: " << labeledImagePath << endl;
+                    continue;
+                }
+
+                // Resize the labeled image to match the detected face size
+                cv::resize(labeledImage, labeledImage, testFace.size());
+
+                // Compare the labeled image with the detected face
+                cv::Mat diff;
+                cv::absdiff(labeledImage, testGray(testFace), diff);
+                double mismatchPercentage = (double)cv::countNonZero(diff) / (testFace.width * testFace.height) * 100.0;
+
+                // If the mismatch percentage is below a threshold, label the face
+                if (mismatchPercentage < 20.0) {
+                    cv::rectangle(
+                        testImage,
+                        testFace,
+                        cv::Scalar(0, 255, 0),
+                        2
+                    );
+
+                    // Label the face with the person's name
+                    cv::putText(
+                        testImage,
+                        personName,
+                        cv::Point(testFace.x, testFace.y - 5),
+                        cv::FONT_HERSHEY_SIMPLEX,
+                        2,
+                        cv::Scalar(255, 0, 0),
+                        2
+                    );
+
+                    faceLabeled = true;
+                    break; // Stop searching for the face in other labeled images
+                }
+            }
+
+            // If the face is not labeled, mark it as "Unknown"
+            if (!faceLabeled) {
+                cv::rectangle(
+                    testImage,
+                    testFace,
+                    cv::Scalar(0, 255, 0),
+                    2
+                );
+
+                // Label the face as "Unknown"
+                cv::putText(
+                    testImage,
+                    "Unknown",
+                    cv::Point(testFace.x, testFace.y - 5),
+                    cv::FONT_HERSHEY_SIMPLEX,
+                    2,
+                    cv::Scalar(255, 0, 0),
+                    2
+                );
+            }
+        }
+
+        // Save the modified test image to the output folder
+        std::string outputTestFilePath = outputFolderPath + "/test_" + entry.path().filename().string();
+        cv::imwrite(outputTestFilePath, testImage);
     }
 
     return 0;
