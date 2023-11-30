@@ -1,5 +1,5 @@
 CC = g++
-LIBS = -lopencv_core -lopencv_highgui -lopencv_imgproc -lopencv_objdetect -lopencv_videoio -lopencv_imgcodecs -lopencv_video -I /usr/include/opencv4
+LIBS = -lopencv_core -lopencv_highgui -lopencv_imgproc -lopencv_objdetect -lopencv_videoio -lopencv_imgcodecs -lopencv_video -lopencv_dnn -I /usr/include/opencv4
 
 OUT_TARGET = dev.o
 
