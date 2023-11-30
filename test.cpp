@@ -122,7 +122,7 @@ int main() {
     
     string outputFolderPath = "OutputData";
 
-    FaceDetector faceDetector("haarcascade_frontalface_default.xml", outputFolderPath);
+    FaceDetector faceDetector("Models/haarcascade_frontalface_default.xml", outputFolderPath);
     
     faceDetector.Train(trainingFolderPath);
 

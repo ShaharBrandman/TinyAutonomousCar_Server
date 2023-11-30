@@ -10,7 +10,7 @@ using namespace std;
 int main() {
     // Load the local face detection cascade
     cv::CascadeClassifier faceCascade;
-    if (!faceCascade.load("haarcascade_frontalface_default.xml")) {
+    if (!faceCascade.load("Models/haarcascade_frontalface_default.xml")) {
         cerr << "Error loading face cascade." << endl;
         return -1;
     }
