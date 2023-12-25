@@ -1,44 +1,14 @@
 #include <iostream>
 
-using namespace std;
+#include <dlib/revision.h>
+#include <opencv2/core.hpp>
 
-class A 
-{
-    protected:
-        int y, x;
+#include <dlib/dnn.h>
 
-    public:
-        A(int x, int y) : x(x), y(y) {}
+int main() {
+    std::cout << "Dlib version: " << DLIB_MAJOR_VERSION << "." << DLIB_MINOR_VERSION << "." << DLIB_PATCH_VERSION << std::endl;
+    std::cout << "OpenCV version: " << CV_VERSION << std::endl;
 
-        virtual void print() {
-            cout << "A: x=" << this->x << endl;
-            cout << "A: y=" << this->y << endl;
-        }
-
-        virtual ~A() {
-            cout << "Desc A: " << this->x << ", " << this-> y << endl;
-        }
-};
-
-class B : public A{
-    public:
-        B(int x, int y) : A(x, y) {}
-
-        void print() {
-            cout << "B: x=" << this->x << endl;
-            cout << "B: y=" << this->y << endl;
-        }
-
-        ~B() {
-            cout << "Desc B: " << this->x << ", " << this-> y << endl;
-        }
-};
-
-int main() 
-{
-    A* ap = new B(69, 420);
-
-    ap->print();
-
-    delete ap;
+    return 0;
 }
+
