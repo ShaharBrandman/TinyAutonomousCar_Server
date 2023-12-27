@@ -68,6 +68,13 @@ void train() {
 }
 
 void test() {
+    if (!fs::exists("ProductionTesting/test.jpg")) {
+        std::cout << "Testing images doesn't exists" << std::endl;
+        return;
+    }
+
+    std::cout << "Testing on a new testing image" << std::endl;
+
     cv::Ptr<cv::ml::SVM> svm = cv::ml::SVM::create();
     svm->setType(cv::ml::SVM::C_SVC);
     svm->setKernel(cv::ml::SVM::LINEAR);
@@ -76,49 +83,49 @@ void test() {
 
     cv::Mat features, labels;
 
-    int right = 0;
-    int wrong = 0;
+    cv::Mat img = cv::imread("ProductionTesting/test.jpg");
 
-    for (const auto& entry : fs::directory_iterator("TestingData")) {
-        cv::Mat img = cv::imread(entry.path().string());
+    if (img.empty()) {
+        std::cerr << "Error loading image: ProductionTesting/test.jpg" << std::endl;
+        return;
+    }
 
-        if (img.empty()) {
-            std::cerr << "Error loading image: " << entry.path().string() << std::endl;
-            continue;
-        }
+    cv::Mat featureVector = extractFeatures(img, cv::Size(64, 64));
 
-        cv::Mat featureVector = extractFeatures(img, cv::Size(64, 64));
+    featureVector.convertTo(featureVector, CV_32F);
 
-        featureVector.convertTo(featureVector, CV_32F);
+    float result = svm->predict(featureVector);
 
-        float result = svm->predict(featureVector);
+    std::unordered_map<int, std::string> reverseLabelMap;
+    for (const auto& entry : labelMap) {
+        reverseLabelMap[entry.second] = entry.first;
+    }
 
-        std::unordered_map<int, std::string> reverseLabelMap;
-        for (const auto& entry : labelMap) {
-            reverseLabelMap[entry.second] = entry.first;
-        }
+    std::ofstream outputFile("OutputData/label.txt");
+    if (outputFile.is_open()) {
+        outputFile << "Prediction: ";
 
-        std::cout << "Prediction for " << entry.path().filename().string() << ": ";
-
-        if (result > 0) {
-            if(entry.path().filename().string().find(reverseLabelMap[result]) != std::string::npos) {
-                right++;
-            }
-            else {
-                wrong++;
-            }
-
-            std::cout << reverseLabelMap[result] << std::endl;
+        if (result > 0 && reverseLabelMap.find(result) != reverseLabelMap.end()) {
+            outputFile << reverseLabelMap[result] << std::endl;
         } else {
-            std::cout << "Unknown" << std::endl;
+            outputFile << "Unknown" << std::endl;
         }
 
-        std::cout << "Accuracy: " << (right * 100) / (right + wrong) << std::endl;
+        outputFile.close();
+    } else {
+        std::cerr << "Error opening OutputData/label.txt for writing" << std::endl;
     }
 }
 
 int main() {
     train();
 
-    test();
+    std::cout << "Waiting to test" << std::endl;
+
+    pthread_t t;
+    pthread(&t, NULL &test, NULL);
+
+    while(true) {
+        pthread_join(t, NULL);
+    }
 }
