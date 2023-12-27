@@ -1,119 +1,100 @@
-/*
- * A simple minimalist HTTPS Server
- * responseble for getting and sending data to the TinyAutonoumous Car
- * It is compatible with all Unix operating systems
- * and using severable built in libraries like glibc, bind, socket and htons
- */
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <openssl/ssl.h>
-
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
+#include <pthread.h>
 
 #define root "index.html"
+#define api "api"
+
+void *handle_client(void *arg) {
+    int clientfd = *((int *)arg);
+    free(arg);
+
+    char buffer[8192] = {0}; //keep a null terminator
+    ssize_t bytesRead;
+    int headerEnd = 0;
+
+    while ((bytesRead = read(clientfd, buffer + headerEnd, sizeof(buffer) - 1 - headerEnd)) > 0) {
+        buffer[headerEnd + bytesRead] = '\0';
+
+        char *headerEndPtr = strstr(buffer, "\r\n\r\n");
+        if (headerEndPtr != NULL) {
+            // Calculate the position of the end of headers
+            headerEnd = headerEndPtr - buffer + 4;
+            break;
+        }
+    }
+
+    // "GET /" 5 characters long
+    char *file_request = buffer + 5;
+    char response[8192] = {0};
+    char *metadata = "HTTP/1.3 200 OK\r\nContent-Type: text/html\r\n\r\n";
+
+    memcpy(response, metadata, strlen(metadata));
+
+    if (strncmp(file_request, root, strlen(root)) == 0) {
+        FILE *f = fopen(root, "r");
+        if (f != NULL) {
+            fread(response + strlen(metadata), sizeof(response) - strlen(metadata) - 1, 1, f);
+            fclose(f);
+        } else {
+            char *error = "Error opening file";
+            memcpy(response + strlen(metadata), error, strlen(error));
+        }
+	} else if (strncmp(file_request, api, strlen(api)) == 0) {
+        FILE *f = fopen(api, "r");
+        if (f != NULL) {
+            fread(response + strlen(metadata), sizeof(response) - strlen(metadata) - 1, 1, f);
+            fclose(f);
+        } else {
+            char *error = "Error opening file";
+            memcpy(response + strlen(metadata), error, strlen(error));
+        }
+    } else {
+        char *error = "No page found";
+        memcpy(response + strlen(metadata), error, strlen(error));
+    }
+
+    write(clientfd, response, strlen(response));
+    printf("Replied to %s\n", file_request);
+
+    close(clientfd);
+}
 
 int main() {
-	//creating a tcp socket stream
-	int sockfd = socket(
-		AF_INET, //for ipv4
-		SOCK_STREAM, //for tcp
-		0
-	);
+    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
-	//creating an ipv4 address struct to run on port 443
-	struct sockaddr_in addr = {
-		AF_INET, //family type
-		htons(443), //port number, using htons to convert the value between host and network byte order
-		INADDR_ANY //for any address
-	};
+    struct sockaddr_in addr = {
+        .sin_family = AF_INET,
+        .sin_port = htons(8080),
+        .sin_addr.s_addr = INADDR_ANY
+    };
 
-	//binding the socket with the address struct
-	if (bind(
-		sockfd,
-		(struct sockaddr*) &addr,
-		sizeof(addr)
-	) == -1) {
-		perror("Bind error");
-		printf("Couldn't bind socket\n");
-		return 0;
-	}
+    bind(sockfd, (struct sockaddr*)&addr, sizeof(addr));
+    listen(sockfd, 10);
 
-	//listen on this socket with max 5 pending connections at once
-	listen(sockfd, 5);
-
-	struct sockaddr_in local_addr;
+    struct sockaddr_in local_addr;
     socklen_t local_addr_len = sizeof(local_addr);
     getsockname(sockfd, (struct sockaddr*)&local_addr, &local_addr_len);
 
-    // print the IP address and port number
     printf("Server is running on %s:%d\n", inet_ntoa(local_addr.sin_addr), ntohs(local_addr.sin_port));
 
-	//defining the accept mechanism for the socket
-	int clientfd = accept(sockfd, NULL, NULL);
+    while (1) {
+        int *clientfd = malloc(sizeof(int));
+        *clientfd = accept(sockfd, NULL, NULL);
 
-	//initilizing SSL context
-	SSL_CTX* ctx = SSL_CTX_new(TLS_server_method());
-	
-	//creating an SSL struct pointer using the ssl context
-	SSL* ssl = SSL_new(ctx);
+        pthread_t thread;
+        pthread_create(&thread, NULL, handle_client, (void *)clientfd);
 
-	//setting communication with the client using ssl
-	SSL_set_fd(ssl, clientfd);
-	
-	//getting SSL certificate
-    SSL_use_certificate_chain_file(ssl, "ssl/cert.pem");
-	
-	//getting SSL Private key
-	SSL_use_PrivateKey_file(ssl, "ssl/key.pem", SSL_FILETYPE_PEM);
-	
-	//verifying the SSL connection and wait for 
-    SSL_accept(ssl);
+        pthread_detach(thread);
+    }
 
-	char buffer[1024] = {0}; //keeping a null terminator
-	SSL_read(ssl, buffer, 1023); //enable the option to read bytes from the SSL connection
-	
-	// GET /index.html
-	char* get_file_request = buffer + 5; //get request from the client
+    close(sockfd);
 
-	// POST /index.html
-	char* post_file_request = buffer + 6; //post request from the client
-
-	char response[1024] = {0}; //also keeping a null terminator
-
-	//defining the reponse metadata
-	char* metadata = "HTTP/1.0 200 OK\r\nContent-Type: text/html\r\n\r\n";
-
-	//copying metadata to reponse string
-	memcpy(response, metadata, strlen(metadata));
-
-	//if the get request is for the root path
-	if (strcmp(get_file_request, root) == 0) {
-		FILE* f = fopen(root, "r");
-
-		//reading root file
-		fread(response + strlen(metadata), 1024 - strlen(metadata) - 1, 1, f);
-		
-		//closing fs session
-		fclose(f);
-	} else {
-		char* error = "No page found";
-		memcpy(response + strlen(metadata), error, strlen(error));
-	}
-
-	//replying with a response with SSL connection
-	SSL_write(ssl, response, 1024);
-
-	//shutting down ssl
-	SSL_shutdown(ssl);
-
-	free(ssl);
-	free(ctx);
-
-	//close the tcp socket
-	close(sockfd);
-
-	return 1;
+    return 0;
 }

@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -std=c++14 -I /usr/include/opencv4 -I /usr/include
+CXXFLAGS = -std=c++14 -I /usr/include/opencv4 -I /usr/include -g
 LIBS = -lssl -ldlib -lopencv_core -lopencv_highgui -lopencv_imgproc -lopencv_imgcodecs -lopencv_ml -lboost_system -lboost_filesystem
 
 OUT_TARGET = index.o
