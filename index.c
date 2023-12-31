@@ -8,8 +8,9 @@
 #include <unistd.h>
 #include <pthread.h>
 
-#define root "index.html"
-#define api "api"
+#define root "/ "
+#define root_location "index.html"
+#define api "/api"
 
 #define BUFFER_SIZE 8192
 #define RESPONSE_SIZE 8192
@@ -33,15 +34,15 @@ void *handle_client(void *arg) {
         }
     }
 
-    // "GET /" 5 characters long
-    char *file_request = buffer + 5;
+    // "GET /" 4 characters long (before the slash)
+    char *file_request = buffer + 4;
     char response[RESPONSE_SIZE] = {0};
     char *metadata = "HTTP/1.3 200 OK\r\nContent-Type: text/html\r\n\r\n";
 
     memcpy(response, metadata, strlen(metadata));
 
     if (strncmp(file_request, root, strlen(root)) == 0) {
-        FILE *f = fopen(root, "r");
+        FILE *f = fopen(root_location, "r");
         if (f != NULL) {
             fread(response + strlen(metadata), sizeof(response) - strlen(metadata) - 1, 1, f);
             fclose(f);
@@ -50,14 +51,6 @@ void *handle_client(void *arg) {
             memcpy(response + strlen(metadata), error, strlen(error));
         }
 	} else if (strncmp(file_request, api, strlen(api)) == 0) {
-        // FILE *f = popen("./ml.o", "r");
-        // if (f != NULL) {
-        //     fread(response + strlen(metadata), sizeof(response) - strlen(metadata) - 1, 1, f);
-        //     pclose(f);
-        // } else {
-        //     char *error = "Error executing program";
-        //     memcpy(response + strlen(metadata), error, strlen(error));
-        // }
         FILE *f = popen("./ml.o", "r");
         if (f != NULL) {
             fread(response + strlen(metadata), sizeof(response) - strlen(metadata) - 1, 1, f);
