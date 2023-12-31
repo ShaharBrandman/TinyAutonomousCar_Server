@@ -9,7 +9,7 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/ml.hpp>
 
-#define STREAM_URL "http://192.168.1.1/stream"
+#define STREAM_URL "TestingData/Gingi_5.jpeg"
 
 namespace fs = boost::filesystem;
 
@@ -36,7 +36,7 @@ void train() {
             cv::Mat img = cv::imread(entry.path().string());
 
             if (img.empty()) {
-                std::cerr << "Error loading image: " << entry.path().string() << std::endl;
+                std::cerr << "train(): Error loading image: " << entry.path().string() << std::endl;
                 continue;
             }
 
@@ -68,16 +68,16 @@ void train() {
 
     svm->save("object_model.xml");
 
-    std::cout << "Training complete." << std::endl;
+    //std::cout << "Training complete." << std::endl;
 }
 
 void test() {
-    std::cout << "Testing on a new testing image" << std::endl;
+    //std::cout << "Testing on a new testing image" << std::endl;
 
     cv::Mat img = cv::imread(STREAM_URL);
 
     if (img.empty()) {
-        std::cerr << "Error loading image: " << STREAM_URL << std::endl;
+        std::cerr << "test(): Error loading image: " << STREAM_URL << std::endl;
         return;
     }
 
@@ -100,19 +100,12 @@ void test() {
         reverseLabelMap[entry.second] = entry.first;
     }
 
-    std::ofstream outputFile("OutputData/label.txt");
-    if (outputFile.is_open()) {
-        outputFile << "Prediction: ";
+    std::cout << "Prediction: ";
 
-        if (result > 0 && reverseLabelMap.find(result) != reverseLabelMap.end()) {
-            outputFile << reverseLabelMap[result] << std::endl;
-        } else {
-            outputFile << "Unknown" << std::endl;
-        }
-
-        outputFile.close();
+    if (result > 0 && reverseLabelMap.find(result) != reverseLabelMap.end()) {
+        std::cout << reverseLabelMap[result] << std::endl;
     } else {
-        std::cerr << "Error opening OutputData/label.txt for writing" << std::endl;
+        std::cout << "Unknown" << std::endl;
     }
 }
 

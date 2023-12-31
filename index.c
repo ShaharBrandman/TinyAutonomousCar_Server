@@ -50,7 +50,15 @@ void *handle_client(void *arg) {
             memcpy(response + strlen(metadata), error, strlen(error));
         }
 	} else if (strncmp(file_request, api, strlen(api)) == 0) {
-        FILE *f = popen("python3 test.py", "r");
+        // FILE *f = popen("./ml.o", "r");
+        // if (f != NULL) {
+        //     fread(response + strlen(metadata), sizeof(response) - strlen(metadata) - 1, 1, f);
+        //     pclose(f);
+        // } else {
+        //     char *error = "Error executing program";
+        //     memcpy(response + strlen(metadata), error, strlen(error));
+        // }
+        FILE *f = popen("./ml.o", "r");
         if (f != NULL) {
             fread(response + strlen(metadata), sizeof(response) - strlen(metadata) - 1, 1, f);
             pclose(f);

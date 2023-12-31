@@ -1,6 +1,6 @@
 ML_CXX = g++
 ML_CXXFLAGS = -std=c++14 -I /usr/include/opencv4 -I /usr/include -g
-ML_LIBS = -lssl -ldlib -lopencv_core -lopencv_highgui -lopencv_imgproc -lopencv_imgcodecs -lopencv_ml -lboost_system -lboost_filesystem
+ML_LIBS = -ldlib -lopencv_core -lopencv_highgui -lopencv_imgproc -lopencv_imgcodecs -lopencv_ml -lboost_system -lboost_filesystem
 
 SRV_CXX = gcc
 SRV_LIBS = -lssl -lcrypto
