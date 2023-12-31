@@ -11,7 +11,7 @@ HTTP_SRV_IN = index.c
 ML_OUT = ml.o
 ML_IN = ml.cpp
 
-TRASH = ml.o index.o test.o OutputData object_model.xml
+TRASH = ml.o index.o test.o OutputData labelMap.json object_model.xml
 
 all: $(HTTP_SRV_OUT) $(ML_OUT)
 

@@ -11,11 +11,11 @@
 
 #include <json.hpp>
 
+#define JSON_PRETTY_VALUE 4
+
 namespace fs = boost::filesystem;
 
 using json = nlohmann::json;
-
-std::unordered_map<std::string, int> labelMap;
 
 cv::Mat extractFeatures(const cv::Mat& image, const cv::Size& targetSize) {
     cv::Mat resizedImage;
@@ -34,6 +34,8 @@ json train() {
     int labelCounter = 1;
 
     json trainResult;
+
+    std::unordered_map<std::string, int> labelMap;
 
     for (const auto& person_folder : {"Shahar", "Gingi"}) {
         for (const auto& entry : fs::directory_iterator("TrainingData/" + std::string(person_folder))) {
@@ -71,9 +73,16 @@ json train() {
     //train the SVM model
     svm->train(features, cv::ml::ROW_SAMPLE, labels);
 
+    //save the model
     svm->save("object_model.xml");
 
+    //save label map
+    std::ofstream labelMapFile("labelMap.json");
+    labelMapFile << json(labelMap).dump(JSON_PRETTY_VALUE);
+    labelMapFile.close();
+
     trainResult["Result"] = "Training has complete";
+    trainResult["labelMap"] = json(labelMap);
 
     return trainResult;
 }
@@ -82,6 +91,8 @@ json test(const std::string path) {
     //std::cout << "Testing on a new testing image" << std::endl;
 
     json testResult;
+
+    std::unordered_map<std::string, int> labelMap;
 
     testResult["TestPath"] = path;
 
@@ -93,17 +104,28 @@ json test(const std::string path) {
         return testResult;
     }
 
-    cv::Ptr<cv::ml::SVM> svm = cv::ml::SVM::create();
-    svm->setType(cv::ml::SVM::C_SVC);
-    svm->setKernel(cv::ml::SVM::LINEAR);
-
     if (!fs::exists("object_model.xml")) {
         testResult["Error"] = "test() object_model.xml doesn't exists!";
 
         return testResult;
     }
 
-    svm = cv::Algorithm::load<cv::ml::SVM>("object_model.xml");
+    if (!fs::exists("labelMap.json")) {
+        testResult["Error"] = "test() labelMap.json doesn't exists!";
+
+        return testResult;
+    }
+
+    cv::Ptr<cv::ml::SVM> svm = cv::Algorithm::load<cv::ml::SVM>("object_model.xml");
+    svm->setType(cv::ml::SVM::C_SVC);
+    svm->setKernel(cv::ml::SVM::LINEAR);
+
+    std::ifstream labelMapFile("labelMap.json");
+    json labelMapJson;
+    labelMapFile >> labelMapJson;
+    labelMapFile.close();
+
+    labelMap = labelMapJson.get<std::unordered_map<std::string, int>>();
 
     cv::Mat features, labels;
 
@@ -122,7 +144,6 @@ json test(const std::string path) {
 
     //if result is above 0 and the result is known
     if (result > 0 && reverseLabelMap.find(result) != reverseLabelMap.end()) {
-        std::cout << reverseLabelMap[result] << std::endl;
         testResult["Prediction"] = reverseLabelMap[result];
     }
 
@@ -138,18 +159,17 @@ int main(int argc, char* argv[]) {
     for(int i=0; i<argc; i++) {
         if (strcmp(argv[i], "--train") == 0) {
             json trainResult = train();
-            std::cout << trainResult << std::endl;
-            test("TestingData/Gingi_1.jpeg");
+            std::cout << trainResult.dump(JSON_PRETTY_VALUE) << std::endl;
         }
         else if(strcmp(argv[i], "--test") == 0) {
             if(i + 1 != argc) {
                 json testResult = test(argv[i+1]);
-                std::cout << testResult.dump() << std::endl;
+                std::cout << testResult.dump(JSON_PRETTY_VALUE) << std::endl;
             }
             else {
                 json t;
                 t["Error"] = "No Testing data was provided";
-                std::cout << t.dump() << std::endl;
+                std::cout << t.dump(JSON_PRETTY_VALUE) << std::endl;
             }
         }
     }
