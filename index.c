@@ -11,11 +11,14 @@
 #define root "index.html"
 #define api "api"
 
+#define BUFFER_SIZE 8192
+#define RESPONSE_SIZE 8192
+
 void *handle_client(void *arg) {
     int clientfd = *((int *)arg);
     free(arg);
 
-    char buffer[8192] = {0}; //keep a null terminator
+    char buffer[BUFFER_SIZE] = {0}; //keep a null terminator
     ssize_t bytesRead;
     int headerEnd = 0;
 
@@ -24,7 +27,7 @@ void *handle_client(void *arg) {
 
         char *headerEndPtr = strstr(buffer, "\r\n\r\n");
         if (headerEndPtr != NULL) {
-            // Calculate the position of the end of headers
+            //calculate the position of the end of headers
             headerEnd = headerEndPtr - buffer + 4;
             break;
         }
@@ -32,7 +35,7 @@ void *handle_client(void *arg) {
 
     // "GET /" 5 characters long
     char *file_request = buffer + 5;
-    char response[8192] = {0};
+    char response[RESPONSE_SIZE] = {0};
     char *metadata = "HTTP/1.3 200 OK\r\nContent-Type: text/html\r\n\r\n";
 
     memcpy(response, metadata, strlen(metadata));
@@ -47,12 +50,12 @@ void *handle_client(void *arg) {
             memcpy(response + strlen(metadata), error, strlen(error));
         }
 	} else if (strncmp(file_request, api, strlen(api)) == 0) {
-        FILE *f = fopen(api, "r");
+        FILE *f = popen("python3 test.py", "r");
         if (f != NULL) {
             fread(response + strlen(metadata), sizeof(response) - strlen(metadata) - 1, 1, f);
-            fclose(f);
+            pclose(f);
         } else {
-            char *error = "Error opening file";
+            char *error = "Error executing program";
             memcpy(response + strlen(metadata), error, strlen(error));
         }
     } else {
@@ -62,6 +65,9 @@ void *handle_client(void *arg) {
 
     write(clientfd, response, strlen(response));
     printf("Replied to %s\n", file_request);
+
+    // free(file_request);
+    // free(metadata); not allocated to there is no point in freeing it
 
     close(clientfd);
 }

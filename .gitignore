@@ -1,3 +1,6 @@
+# Folders
+ssl
+
 # Prerequisites
 *.d
 
@@ -27,6 +30,7 @@
 *.lib
 
 # Executables
+*.o
 *.exe
 *.out
 *.app

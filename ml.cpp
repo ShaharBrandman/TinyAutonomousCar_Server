@@ -1,4 +1,6 @@
 #include <iostream>
+#include <fstream>
+
 #include <vector>
 #include <unordered_map>
 
@@ -6,6 +8,8 @@
 
 #include <opencv2/opencv.hpp>
 #include <opencv2/ml.hpp>
+
+#define STREAM_URL "http://192.168.1.1/stream"
 
 namespace fs = boost::filesystem;
 
@@ -25,7 +29,6 @@ void train() {
 
     cv::Mat features, labels;
     
-
     int labelCounter = 1;
 
     for (const auto& person_folder : {"Shahar", "Gingi"}) {
@@ -69,12 +72,14 @@ void train() {
 }
 
 void test() {
-    if (!fs::exists("ProductionTesting/test.jpg")) {
-        std::cout << "Testing images doesn't exists" << std::endl;
+    std::cout << "Testing on a new testing image" << std::endl;
+
+    cv::Mat img = cv::imread(STREAM_URL);
+
+    if (img.empty()) {
+        std::cerr << "Error loading image: " << STREAM_URL << std::endl;
         return;
     }
-
-    std::cout << "Testing on a new testing image" << std::endl;
 
     cv::Ptr<cv::ml::SVM> svm = cv::ml::SVM::create();
     svm->setType(cv::ml::SVM::C_SVC);
@@ -83,13 +88,6 @@ void test() {
     svm = cv::Algorithm::load<cv::ml::SVM>("object_model.xml");
 
     cv::Mat features, labels;
-
-    cv::Mat img = cv::imread("ProductionTesting/test.jpg");
-
-    if (img.empty()) {
-        std::cerr << "Error loading image: ProductionTesting/test.jpg" << std::endl;
-        return;
-    }
 
     cv::Mat featureVector = extractFeatures(img, cv::Size(64, 64));
 
@@ -121,12 +119,5 @@ void test() {
 int main() {
     train();
 
-    std::cout << "Waiting to test" << std::endl;
-
-    pthread_t t;
-    pthread(&t, NULL &test, NULL);
-
-    while(true) {
-        pthread_join(t, NULL);
-    }
+    test();
 }
