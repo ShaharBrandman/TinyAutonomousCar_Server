@@ -24,6 +24,7 @@ void train() {
     svm->setKernel(cv::ml::SVM::LINEAR);
 
     cv::Mat features, labels;
+    
 
     int labelCounter = 1;
 

@@ -10,11 +10,11 @@ ML_IN = ml.cpp
 
 TRASH = ml.o index.o test.o OutputData object_model.xml
 
-all: $(HTTP_SRV_OUT) $(ML_OUT)
+all: $(HTTP_SRV_OUT)
 
 $(OUT_TARGET): $(IN_TARGET)
 	$(CXX) $(CXXFLAGS) -o $(HTTP_SRV_OUT) $(HTTP_SRV_IN) $(LIBS)
-	#$(CXX) $(CXXFLAGS) -o $(ML_OUT) $(ML_IN) $(LIBS)
+	# $(CXX) $(CXXFLAGS) -o $(ML_OUT) $(ML_IN) $(LIBS)
 	$(CXX) $(CXXFLAGS) -o test.o test.cpp $(LIBS)
 
 clean:
