@@ -1,11 +1,11 @@
-#include "esp_camera.h"
+#include <esp_camera.h>
 #include <WiFi.h>
 #include <WebServer.h>
 #include <ESPmDNS.h>
 
 // Replace with your network credentials
-const char* ssid = "Kinneret College";
-const char* password = "";
+const char* ssid = "ur mom";
+const char* password = "12345678";
 
 // Camera Pin Configuration
 #define PWDN_GPIO_NUM     32
@@ -81,7 +81,7 @@ void setup() {
   config.pin_reset = RESET_GPIO_NUM;
   config.xclk_freq_hz = 23000000;
   config.pixel_format = PIXFORMAT_JPEG;
-  config.frame_size = FRAMESIZE_VGA; //svga
+  config.frame_size = FRAMESIZE_SVGA; //vga
   config.jpeg_quality = 7;
   config.fb_count = 4;
 

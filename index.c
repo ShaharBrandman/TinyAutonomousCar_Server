@@ -37,7 +37,7 @@ void *handle_client(void *arg) {
     // "GET /" 4 characters long (before the slash)
     char *file_request = buffer + 4;
     char response[RESPONSE_SIZE] = {0};
-    char *metadata = "HTTP/1.3 200 OK\r\nContent-Type: text/html\r\n\r\n";
+    char *metadata = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n";
 
     memcpy(response, metadata, strlen(metadata));
 
@@ -51,14 +51,26 @@ void *handle_client(void *arg) {
             memcpy(response + strlen(metadata), error, strlen(error));
         }
 	} else if (strncmp(file_request, api, strlen(api)) == 0) {
-        FILE *f = popen("./ml.o", "r");
-        if (f != NULL) {
-            fread(response + strlen(metadata), sizeof(response) - strlen(metadata) - 1, 1, f);
-            pclose(f);
+        char *arguments = strchr(file_request, '?');
+        if (arguments != NULL) {
+            arguments++;
+
+            char command[16]; //longest possible argument ./ml.o --train/test
+            snprintf(command, sizeof(command), "./ml.o %s", arguments);
+            printf("Command %s\n", command);
+            FILE *f = popen(command, "r");
+            if (f != NULL) {
+                fread(response + strlen(metadata), sizeof(response) - strlen(metadata) - 1, 1, f);
+                pclose(f);
+            } else {
+                char *error = "Error executing program";
+                memcpy(response + strlen(metadata), error, strlen(error));
+            }
         } else {
-            char *error = "Error executing program";
+            char *error = "No arguments provided";
             memcpy(response + strlen(metadata), error, strlen(error));
         }
+
     } else {
         char *error = "No page found";
         memcpy(response + strlen(metadata), error, strlen(error));
@@ -66,9 +78,6 @@ void *handle_client(void *arg) {
 
     write(clientfd, response, strlen(response));
     printf("Replied to %s\n", file_request);
-
-    // free(file_request);
-    // free(metadata); not allocated to there is no point in freeing it
 
     close(clientfd);
 }
